@@ -1,0 +1,14 @@
+/home/togrowagencia/ediciones_hispanicas/build/linux/x64/debug/bundle/ediciones_hispanicas
+/home/togrowagencia/ediciones_hispanicas/build/linux/x64/debug/bundle/data/icudtl.dat
+/home/togrowagencia/ediciones_hispanicas/build/linux/x64/debug/bundle/lib/libflutter_linux_gtk.so
+/home/togrowagencia/ediciones_hispanicas/build/linux/x64/debug/bundle/data/flutter_assets/kernel_blob.bin
+/home/togrowagencia/ediciones_hispanicas/build/linux/x64/debug/bundle/data/flutter_assets/assets/images/background.jpeg
+/home/togrowagencia/ediciones_hispanicas/build/linux/x64/debug/bundle/data/flutter_assets/packages/cupertino_icons/assets/CupertinoIcons.ttf
+/home/togrowagencia/ediciones_hispanicas/build/linux/x64/debug/bundle/data/flutter_assets/fonts/MaterialIcons-Regular.otf
+/home/togrowagencia/ediciones_hispanicas/build/linux/x64/debug/bundle/data/flutter_assets/shaders/ink_sparkle.frag
+/home/togrowagencia/ediciones_hispanicas/build/linux/x64/debug/bundle/data/flutter_assets/NativeAssetsManifest.json
+/home/togrowagencia/ediciones_hispanicas/build/linux/x64/debug/bundle/data/flutter_assets/AssetManifest.json
+/home/togrowagencia/ediciones_hispanicas/build/linux/x64/debug/bundle/data/flutter_assets/AssetManifest.bin
+/home/togrowagencia/ediciones_hispanicas/build/linux/x64/debug/bundle/data/flutter_assets/FontManifest.json
+/home/togrowagencia/ediciones_hispanicas/build/linux/x64/debug/bundle/data/flutter_assets/version.json
+/home/togrowagencia/ediciones_hispanicas/build/linux/x64/debug/bundle/data/flutter_assets/NOTICES.Z
