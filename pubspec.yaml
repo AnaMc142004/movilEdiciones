@@ -47,10 +47,10 @@ flutter_icons:
   image_path: assets/images/logos.png
 
 flutter_native_splash:
-  color: "#00733C;"                      # fondo
+  color: "#00733B"                      # fondo
   image: assets/images/logos.png       # logo splash
   android_12:
-    color: "#00733C;"
+    color: "#00733B"
     image: assets/images/logos.png
 
 flutter:
