@@ -18,7 +18,7 @@ class BooksTable extends StatelessWidget {
           scrollDirection: Axis.vertical,
           child: DataTable(
             columnSpacing: 12,
-            headingRowColor: MaterialStateProperty.all(Colors.grey[200]),
+            headingRowColor: WidgetStateProperty.all(Colors.grey[200]),
             columns: const [
               DataColumn(label: Text("Nombre de la obra")),
               DataColumn(label: Text("Cantidad\nPropia")),
@@ -30,7 +30,7 @@ class BooksTable extends StatelessWidget {
               Book book = entry.value;
 
               return DataRow(
-                color: MaterialStateProperty.resolveWith<Color?>((states) {
+                color: WidgetStateProperty.resolveWith<Color?>((states) {
                   if (index % 2 == 0) return Colors.grey[100];
                   return null;
                 }),
@@ -94,8 +94,6 @@ class BooksTable extends StatelessWidget {
                                   ],
                                 ),
                                 const SizedBox(height: 8),
-
-                                // ISBN e ID
                                 Text(
                                   "ISBN: ${book.isbn}",
                                   style: const TextStyle(
@@ -138,7 +136,6 @@ class BooksTable extends StatelessWidget {
                                 ),
                                 const SizedBox(height: 12),
 
-                                // Cantidades
                                 Text(
                                   "Cantidad propia: ${book.cantidadPropia}",
                                   style: const TextStyle(fontSize: 16),
@@ -148,8 +145,6 @@ class BooksTable extends StatelessWidget {
                                   style: const TextStyle(fontSize: 16),
                                 ),
                                 const SizedBox(height: 8),
-
-                                // Total
                                 Text(
                                   "Total libros: ${book.total}",
                                   style: const TextStyle(

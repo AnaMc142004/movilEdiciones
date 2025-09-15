@@ -19,7 +19,6 @@ class _WorkPageState extends State<WorkPage> {
   bool obrasConsignacion = false;
   bool obrasPropias = false;
 
-  // Inicializamos repository con el service
   late final BookRepository repository;
 
   @override
@@ -56,7 +55,6 @@ class _WorkPageState extends State<WorkPage> {
           children: [
             HeaderWithFilters(),
             const SizedBox(height: 8),
-            // Checkboxes
             Row(
               children: [
                 StatefulBuilder(
@@ -70,7 +68,7 @@ class _WorkPageState extends State<WorkPage> {
                           });
                         },
                       ),
-                      const Text("Obras en consignación"),
+                      const Text("Consignación"),
                     ],
                   ),
                 ),
@@ -86,14 +84,13 @@ class _WorkPageState extends State<WorkPage> {
                           });
                         },
                       ),
-                      const Text("Obras propias"),
+                      const Text("Propias"),
                     ],
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 16),
-            // Tabla
             Expanded(
               child: isLoading
                   ? const Center(child: CircularProgressIndicator())

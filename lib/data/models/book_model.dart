@@ -5,7 +5,7 @@ class Book {
   final String editorial; // nuevo
   final int cantidadPropia;
   final int cantidadConsignacion;
-  final int total; // nuevo, puede ser calculado o recibido del API
+  final int total; 
 
   Book({
     required this.id,
@@ -17,10 +17,9 @@ class Book {
     required this.total,
   });
 
-  // Constructor desde JSON
   factory Book.fromJson(Map<String, dynamic> json) {
     return Book(
-      id: json['id']?.toString() ?? '', // convierte a string si viene como int
+      id: json['id']?.toString() ?? '', 
       nombre: json['name'] ?? 'Sin nombre',
       isbn: json['isbn'] ?? 'Sin ISBN',
       editorial: json['editorial'] ?? 'Sin editorial',
@@ -30,7 +29,6 @@ class Book {
     );
   }
 
-  // Convertir a JSON
   Map<String, dynamic> toJson() {
     return {
       'id': id,
