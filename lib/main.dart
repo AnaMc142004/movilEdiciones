@@ -1,22 +1,29 @@
+// lib/main.dart
 import 'package:flutter/material.dart';
-import 'core/theme/app_theme.dart';
 import 'presentation/routes/app_routes.dart';
-
-void main() {
-  runApp(const MyApp());
+import '../local/session_storage.dart';
+import "presentation/routes/app_routes.dart";
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final hasSession = await SessionStorage.hasSession();
+  runApp(MyApp(initialRoute: hasSession ? AppRoutes.work : AppRoutes.login));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final String initialRoute;
+  const MyApp({super.key, required this.initialRoute});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      title: 'MovilEdiciones',
       debugShowCheckedModeBanner: false,
-      title: 'Mi App',
-      theme: AppTheme.lightTheme,
-      initialRoute: AppRoutes.login,
-      onGenerateRoute: AppRoutes.generateRoute,
+      initialRoute: initialRoute,                 // '/' si es login
+      onGenerateRoute: AppRoutes.generateRoute,  // <-- usa tu switch
+      // onUnknownRoute: (settings) => MaterialPageRoute(
+      //   builder: (_) => const Scaffold(body: Center(child: Text('Ruta no encontrada'))),
+      // ),
+      theme: ThemeData(useMaterial3: true),
     );
   }
 }

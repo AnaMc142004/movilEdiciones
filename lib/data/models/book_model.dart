@@ -1,11 +1,11 @@
 class Book {
-  final String id; // nuevo
+  final String id;
   final String nombre;
-  final String isbn; // nuevo
-  final String editorial; // nuevo
+  final String isbn;
+  final String editorial;
   final int cantidadPropia;
   final int cantidadConsignacion;
-  final int total; 
+  final int total;
 
   Book({
     required this.id,
@@ -17,27 +17,53 @@ class Book {
     required this.total,
   });
 
-  factory Book.fromJson(Map<String, dynamic> json) {
+  // Convertir de Map a Book (para leer desde base de datos)
+  factory Book.fromMap(Map<String, dynamic> map) {
     return Book(
-      id: json['id']?.toString() ?? '', 
-      nombre: json['name'] ?? 'Sin nombre',
-      isbn: json['isbn'] ?? 'Sin ISBN',
-      editorial: json['editorial'] ?? 'Sin editorial',
-      cantidadPropia: json['own_quantity_total'] ?? 0,
-      cantidadConsignacion: json['consignment_quantity_total'] ?? 0,
-      total: json['total'] ?? 0,
+      id: map['id']?.toString() ?? '',
+      nombre: map['nombre']?.toString() ?? '',
+      isbn: map['isbn']?.toString() ?? '',
+      editorial: map['editorial']?.toString() ?? '',
+      cantidadPropia: _safeToInt(map['cantidadPropia']),
+      cantidadConsignacion: _safeToInt(map['cantidadConsignacion']),
+      total: _safeToInt(map['total']),
     );
   }
 
-  Map<String, dynamic> toJson() {
+  // Convertir de Book a Map (para guardar en base de datos)
+  Map<String, dynamic> toMap() {
     return {
       'id': id,
-      'name': nombre,
+      'nombre': nombre,
       'isbn': isbn,
       'editorial': editorial,
-      'own_quantity_total': cantidadPropia,
-      'consignment_quantity_total': cantidadConsignacion,
+      'cantidadPropia': cantidadPropia,
+      'cantidadConsignacion': cantidadConsignacion,
       'total': total,
     };
   }
+
+  static int _safeToInt(dynamic value) {
+    if (value == null) return 0;
+    if (value is int) return value;
+    if (value is double) return value.toInt();
+    if (value is String) {
+      return int.tryParse(value) ?? 0;
+    }
+    return 0;
+  }
+
+  @override
+  String toString() {
+    return 'Book(id: $id, nombre: $nombre, editorial: $editorial, cantidadPropia: $cantidadPropia, cantidadConsignacion: $cantidadConsignacion, total: $total)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is Book && other.id == id;
+  }
+
+  @override
+  int get hashCode => id.hashCode;
 }

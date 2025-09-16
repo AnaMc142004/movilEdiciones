@@ -1,3 +1,6 @@
+// lib/data/models/login_model.dart
+import 'dart:convert';
+
 class Warehouse {
   final String id;
   final String name;
@@ -41,6 +44,21 @@ class Warehouse {
         departament: json['departament'],
         numberInvoice: json['number_invoice'],
       );
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'name': name,
+        'address': address,
+        'email': email,
+        'city': city,
+        'imageUrl': imageUrl,
+        'capacity': capacity,
+        'own_amount': ownAmount,
+        'consignment_amount': consignmentAmount,
+        'total': total,
+        'departament': departament,
+        'number_invoice': numberInvoice,
+      };
 }
 
 class UserModel {
@@ -80,6 +98,19 @@ class UserModel {
         authStrategy: json['authStrategy'],
         warehouse: Warehouse.fromJson(json['warehouse']),
       );
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'name': name,
+        'lastname': lastname,
+        'document': document,
+        'email': email,
+        'role': role,
+        'charge': charge,
+        'blocked': blocked,
+        'authStrategy': authStrategy,
+        'warehouse': warehouse.toJson(),
+      };
 }
 
 class LoginResponse {
@@ -88,8 +119,18 @@ class LoginResponse {
 
   LoginResponse({required this.accessToken, required this.user});
 
+  // Mantengo "accesToken" como tu backend actual.
   factory LoginResponse.fromJson(Map<String, dynamic> json) => LoginResponse(
         accessToken: json['accesToken'],
         user: UserModel.fromJson(json['user']),
       );
+
+  Map<String, dynamic> toJson() => {
+        // Si tu backend usa "accessToken", cambia la clave en estas 2 líneas.
+        'accesToken': accessToken,
+        'user': user.toJson(),
+      };
+
+  @override
+  String toString() => jsonEncode(toJson());
 }

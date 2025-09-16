@@ -1,3 +1,4 @@
+// lib/presentation/pages/login/widgets/login_form.dart
 import 'package:flutter/material.dart';
 import '../../../widgets/custom_input_field.dart';
 import '../../../widgets/custom_button.dart';
@@ -5,6 +6,7 @@ import '../../../../data/services/login_service.dart';
 import '../../../../data/repositories/login_repository.dart';
 import '../../../../data/models/login_model.dart';
 import '../../../routes/app_routes.dart';
+import "../../../../local/session_storage.dart";
 
 class LoginForm extends StatefulWidget {
   const LoginForm({super.key});
@@ -58,14 +60,18 @@ class _LoginFormState extends State<LoginForm> {
               if (_formKey.currentState!.validate()) {
                 try {
                   final LoginResponse loginData = await repository.login(
-                    _userController.text,
-                    _passwordController.text,
+                    _userController.text.trim(),
+                    _passwordController.text.trim(),
                   );
 
-                  print('Token: ${loginData.accessToken}');
-                  print('Usuario: ${loginData.user.name}');
+                  await SessionStorage.save(loginData);
 
-                  Navigator.pushNamed(context, AppRoutes.work);
+                  if (!mounted) return;
+                  Navigator.pushNamedAndRemoveUntil(
+                    context,
+                    AppRoutes.work,
+                    (route) => false, // <- borra TODO el historial
+                  );
                 } catch (e) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text('Error: ${e.toString()}')),

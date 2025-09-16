@@ -19,8 +19,9 @@ class DbService {
 
     return await openDatabase(
       path,
-      version: 1,
+      version: 2, // Incrementar versión para agregar nueva tabla
       onCreate: _createDB,
+      onUpgrade: _onUpgrade,
     );
   }
 
@@ -37,6 +38,26 @@ class DbService {
       )
     ''');
 
+    await db.execute('''
+      CREATE TABLE cache_metadata(
+        key TEXT PRIMARY KEY,
+        last_update INTEGER,
+        created_at INTEGER
+      )
+    ''');
+  }
+
+  Future _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      // Agregar tabla de metadata si no existe
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS cache_metadata(
+          key TEXT PRIMARY KEY,
+          last_update INTEGER,
+          created_at INTEGER
+        )
+      ''');
+    }
   }
 
   Future<int> insert(String table, Map<String, dynamic> data) async {
@@ -48,40 +69,50 @@ class DbService {
     );
   }
 
-  /// Obtener todos los registros de una tabla
   Future<List<Map<String, dynamic>>> getAll(String table) async {
     final db = await instance.database;
     return await db.query(table);
   }
 
-  /// Obtener registros con condiciones
   Future<List<Map<String, dynamic>>> query(String table,
       {String? where, List<Object?>? whereArgs}) async {
     final db = await instance.database;
     return await db.query(table, where: where, whereArgs: whereArgs);
   }
 
-  /// Actualizar registro
   Future<int> update(String table, Map<String, dynamic> data,
       {required String where, required List<Object?> whereArgs}) async {
     final db = await instance.database;
     return await db.update(table, data, where: where, whereArgs: whereArgs);
   }
 
-  /// Eliminar registro
   Future<int> delete(String table,
       {required String where, required List<Object?> whereArgs}) async {
     final db = await instance.database;
     return await db.delete(table, where: where, whereArgs: whereArgs);
   }
 
-  /// Borrar todo
   Future<void> clearTable(String table) async {
     final db = await instance.database;
     await db.delete(table);
   }
 
-  /// Cerrar DB
+  // Método para obtener el tamaño de una tabla
+  Future<int> getTableSize(String table) async {
+    final db = await instance.database;
+    final result = await db.rawQuery('SELECT COUNT(*) as count FROM $table');
+    return result.first['count'] as int;
+  }
+
+  // Método para verificar si una tabla existe
+  Future<bool> tableExists(String tableName) async {
+    final db = await instance.database;
+    final result = await db.rawQuery(
+      "SELECT name FROM sqlite_master WHERE type='table' AND name='$tableName'"
+    );
+    return result.isNotEmpty;
+  }
+
   Future close() async {
     final db = await instance.database;
     db.close();
