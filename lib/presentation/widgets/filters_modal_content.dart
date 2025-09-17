@@ -8,18 +8,75 @@ class FiltersModalContent extends StatefulWidget {
 }
 
 class _FiltersModalContentState extends State<FiltersModalContent> {
+  // Controladores (para poder copiar/pegar fácilmente)
+  final TextEditingController _obraCtrl = TextEditingController();
+  final TextEditingController _codigoCtrl = TextEditingController();
+  final TextEditingController _autorCtrl = TextEditingController();
+  final TextEditingController _proveedorCtrl = TextEditingController();
   final TextEditingController _isbnCtrl = TextEditingController();
-  final FocusNode _isbnFocus = FocusNode();
 
-  Future<void> openIsbnScanner() async {
-    debugPrint('Abrir lector de ISBN…');
-  }
+  final FocusNode _isbnFocus = FocusNode();
 
   @override
   void dispose() {
+    _obraCtrl.dispose();
+    _codigoCtrl.dispose();
+    _autorCtrl.dispose();
+    _proveedorCtrl.dispose();
     _isbnCtrl.dispose();
     _isbnFocus.dispose();
     super.dispose();
+  }
+
+  // Si tienes lector de códigos, engancha aquí
+  Future<void> _openIsbnScanner() async {
+    // TODO: Integrar cámara/escaner
+    debugPrint('Abrir lector de ISBN…');
+  }
+
+  void _clearAll() {
+    _obraCtrl.clear();
+    _codigoCtrl.clear();
+    _autorCtrl.clear();
+    _proveedorCtrl.clear();
+    _isbnCtrl.clear();
+    setState(() {}); // refresca placeholders si hace falta
+  }
+
+  String? _editorialFromProveedor(String? prov) {
+    if (prov == null || prov.trim().isEmpty) return null;
+    // Si más adelante necesitas mapear proveedor->editorial, hazlo aquí.
+    return prov.trim();
+  }
+
+  void _apply() {
+    final obra = _obraCtrl.text.trim();
+    final codigo = _codigoCtrl.text.trim();
+    final autor = _autorCtrl.text.trim();
+    final proveedor = _proveedorCtrl.text.trim();
+    final isbn = _isbnCtrl.text.trim();
+
+    final pieces = <String>[
+      if (obra.isNotEmpty) obra,
+      if (_editorialFromProveedor(proveedor) != null)
+        _editorialFromProveedor(proveedor)!,
+      if (isbn.isNotEmpty) isbn,
+      if (autor.isNotEmpty) autor,
+      if (codigo.isNotEmpty) codigo,
+      if (proveedor.isNotEmpty) proveedor,
+    ];
+
+    final result = <String, String?>{
+      'isbn': isbn.isEmpty ? null : isbn,
+      'obra': obra.isEmpty ? null : obra,
+      'editorial': _editorialFromProveedor(proveedor),
+      'autor': autor.isEmpty ? null : autor,
+      'proveedor': proveedor.isEmpty ? null : proveedor,
+      'codigo': codigo.isEmpty ? null : codigo,
+      'searchQuery': pieces.isEmpty ? null : pieces.join(' '),
+    };
+
+    Navigator.pop(context, result);
   }
 
   @override
@@ -27,21 +84,22 @@ class _FiltersModalContentState extends State<FiltersModalContent> {
     final insets = MediaQuery.of(context).viewInsets;
 
     return Padding(
-      padding: EdgeInsets.only(bottom: insets.bottom), 
+      padding: EdgeInsets.only(bottom: insets.bottom),
       child: ClipRRect(
         borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
         child: Material(
           color: Colors.white,
           child: DraggableScrollableSheet(
             expand: false,
-            initialChildSize: 0.4, 
+            initialChildSize: 0.4,
             minChildSize: 0.4,
-            maxChildSize: 0.95, 
+            maxChildSize: 0.95,
             builder: (context, scrollController) {
               return LayoutBuilder(
                 builder: (context, constraints) {
                   final w = constraints.maxWidth;
-                  final twoCols = w >= 360; 
+                  final twoCols = w >= 360; // 2 por fila cuando hay espacio
+
                   double itemWidth(int perRow) {
                     const gap = 8.0;
                     final totalGap = gap * (perRow - 1);
@@ -52,6 +110,7 @@ class _FiltersModalContentState extends State<FiltersModalContent> {
                     controller: scrollController,
                     padding: const EdgeInsets.all(16),
                     children: [
+                      // Handle
                       Center(
                         child: Container(
                           width: 40,
@@ -64,61 +123,95 @@ class _FiltersModalContentState extends State<FiltersModalContent> {
                       ),
                       const SizedBox(height: 12),
 
-                      // Wrap: se parte en otra fila automáticamente
+                      // Inputs en la misma modal (sin abrir otra)
                       Wrap(
                         spacing: 8,
                         runSpacing: 8,
                         children: [
                           SizedBox(
                             width: itemWidth(twoCols ? 2 : 1),
-                            child: _FilterButton(
+                            child: _FilterTextField(
                               icon: Icons.book,
-                              label: "Nombre de la obra",
-                              onTap: () {},
+                              hint: 'Nombre de la obra',
+                              controller: _obraCtrl,
+                              textInputAction: TextInputAction.next,
                             ),
                           ),
                           SizedBox(
                             width: itemWidth(twoCols ? 2 : 1),
-                            child: _FilterButton(
+                            child: _FilterTextField(
                               icon: Icons.code,
-                              label: "Código",
-                              onTap: () {},
+                              hint: 'Código',
+                              controller: _codigoCtrl,
+                              textInputAction: TextInputAction.next,
                             ),
                           ),
                           SizedBox(
                             width: itemWidth(twoCols ? 2 : 1),
-                            child: _FilterButton(
+                            child: _FilterTextField(
                               icon: Icons.person,
-                              label: "Autor",
-                              onTap: () {},
+                              hint: 'Autor',
+                              controller: _autorCtrl,
+                              textInputAction: TextInputAction.next,
                             ),
                           ),
                           SizedBox(
                             width: itemWidth(twoCols ? 2 : 1),
-                            child: _FilterButton(
+                            child: _FilterTextField(
                               icon: Icons.business,
-                              label: "Proveedor",
-                              trailing: const Icon(
-                                Icons.arrow_drop_down,
-                                color: Colors.green,
-                              ),
-                              onTap: () {},
+                              hint: 'Proveedor',
+                              controller: _proveedorCtrl,
+                              textInputAction: TextInputAction.next,
                             ),
                           ),
-
-                          // ISBN ocupa toda la fila en pantallas chicas
+                          // ISBN con botón de cámara
                           SizedBox(
                             width: itemWidth(1),
-                            child: _IsbnInputButton(
+                            child: _IsbnInlineField(
                               controller: _isbnCtrl,
                               focusNode: _isbnFocus,
-                              onCameraTap: openIsbnScanner,
+                              onCameraTap: _openIsbnScanner,
+                              onSubmitted: (_) => _apply(),
                             ),
                           ),
                         ],
                       ),
 
                       const SizedBox(height: 16),
+
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: _clearAll,
+                              style: OutlinedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                side: BorderSide(color: Colors.grey.shade300),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              child: const Text('Limpiar'),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: _apply,
+                              icon: const Icon(Icons.search, color: Colors.white),
+                              label: const Text('Aplicar', style: TextStyle(color: Colors.white)),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.green,
+                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                elevation: 0,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ],
                   );
                 },
@@ -131,62 +224,70 @@ class _FiltersModalContentState extends State<FiltersModalContent> {
   }
 }
 
-class _FilterButton extends StatelessWidget {
+class _FilterTextField extends StatelessWidget {
   final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-  final Widget? trailing;
+  final String hint;
+  final TextEditingController controller;
+  final TextInputAction textInputAction;
+  final TextInputType keyboardType;
 
-  const _FilterButton({
+  const _FilterTextField({
     required this.icon,
-    required this.label,
-    required this.onTap,
-    this.trailing,
+    required this.hint,
+    required this.controller,
+    this.textInputAction = TextInputAction.next,
+    this.keyboardType = TextInputType.text,
   });
 
   @override
   Widget build(BuildContext context) {
-    return OutlinedButton(
-      style: OutlinedButton.styleFrom(
-        side: const BorderSide(color: Colors.green),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-      ),
-      onPressed: onTap,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Flexible(
-            child: Row(
-              children: [
-                Icon(icon, color: Colors.green),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    label,
-                    style: const TextStyle(color: Colors.black),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
-            ),
+    final borderRadius = BorderRadius.circular(12);
+
+    return Material(
+      color: Colors.transparent,
+      child: Container(
+        decoration: ShapeDecoration(
+          shape: RoundedRectangleBorder(
+            side: const BorderSide(color: Colors.green),
+            borderRadius: borderRadius,
           ),
-          if (trailing != null) trailing!,
-        ],
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        child: Row(
+          children: [
+            Icon(icon, color: Colors.green),
+            const SizedBox(width: 8),
+            Expanded(
+              child: TextField(
+                controller: controller,
+                keyboardType: keyboardType,
+                textInputAction: textInputAction,
+                decoration: InputDecoration(
+                  isDense: true,
+                  border: InputBorder.none,
+                  hintText: hint,
+                  hintStyle: const TextStyle(color: Colors.black54),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
-class _IsbnInputButton extends StatelessWidget {
+class _IsbnInlineField extends StatelessWidget {
   final TextEditingController controller;
   final FocusNode focusNode;
   final VoidCallback onCameraTap;
+  final ValueChanged<String>? onSubmitted;
 
-  const _IsbnInputButton({
+  const _IsbnInlineField({
     required this.controller,
     required this.focusNode,
     required this.onCameraTap,
+    this.onSubmitted,
   });
 
   @override
@@ -226,7 +327,7 @@ class _IsbnInputButton extends StatelessWidget {
                   hintText: 'ISBN',
                   hintStyle: TextStyle(color: Colors.black54),
                 ),
-                onSubmitted: (_) => FocusScope.of(context).unfocus(),
+                onSubmitted: onSubmitted,
               ),
             ),
           ],

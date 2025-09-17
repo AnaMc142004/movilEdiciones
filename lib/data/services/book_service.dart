@@ -37,15 +37,34 @@ class BookService {
     await _fetchAllFromAPIAndCache();
   }
 
-  // Forzar una actualización completa desde API (solo si tú lo pides)
+
   Future<void> refreshAllFromAPI() async {
     await _clearCacheInternal();
     await _fetchAllFromAPIAndCache();
   }
 
-  // ---------------------------------------------------------
-  // Paginación + filtros DESDE BD LOCAL
-  // ---------------------------------------------------------
+  Future<BookStats> getBookStats() async {
+    final Database db = await DbService.instance.database;
+
+    final result = await db.rawQuery('''
+      SELECT 
+        COUNT(*) as totalBooks,
+        SUM(cantidadConsignacion) as totalConsignment,
+        SUM(cantidadPropia) as totalOwn,
+        COUNT(CASE WHEN cantidadConsignacion > 0 THEN 1 END) as booksWithConsignment,
+        COUNT(CASE WHEN cantidadPropia > 0 THEN 1 END) as booksWithOwn
+      FROM $tableName
+    ''');
+
+    final row = result.first;
+    return BookStats(
+      totalBooks: (row['totalBooks'] as int?) ?? 0,
+      totalConsignment: (row['totalConsignment'] as int?) ?? 0,
+      totalOwn: (row['totalOwn'] as int?) ?? 0,
+      booksWithConsignment: (row['booksWithConsignment'] as int?) ?? 0,
+      booksWithOwn: (row['booksWithOwn'] as int?) ?? 0,
+    );
+  }
   Future<PageResult<Book>> queryBooksPageFromDB({
     required int page,
     required int pageSize,
@@ -67,14 +86,15 @@ class BookService {
     }
     if (searchQuery != null && searchQuery.trim().isNotEmpty) {
       final q = '%${searchQuery.toLowerCase()}%';
-      whereParts.add('(LOWER(nombre) LIKE ? OR LOWER(isbn) LIKE ? OR LOWER(editorial) LIKE ?)');
+      whereParts.add(
+        '(LOWER(nombre) LIKE ? OR LOWER(isbn) LIKE ? OR LOWER(editorial) LIKE ?)',
+      );
       whereArgs.addAll([q, q, q]);
     }
 
     final where = whereParts.isEmpty ? null : whereParts.join(' AND ');
     final offset = (page - 1) * pageSize;
 
-    // Datos de la página
     final rows = await db.query(
       tableName,
       where: where,
@@ -84,26 +104,44 @@ class BookService {
       offset: offset,
     );
 
-    // Conteo total para saber si hay más
-    final countQuery = StringBuffer('SELECT COUNT(*) as cnt FROM $tableName');
-    if (where != null) countQuery.write(' WHERE $where');
+    final statsQuery = StringBuffer('''
+      SELECT 
+        COUNT(*) as totalFiltered,
+        SUM(cantidadConsignacion) as filteredConsignment,
+        SUM(cantidadPropia) as filteredOwn,
+        COUNT(CASE WHEN cantidadConsignacion > 0 THEN 1 END) as filteredBooksWithConsignment,
+        COUNT(CASE WHEN cantidadPropia > 0 THEN 1 END) as filteredBooksWithOwn
+      FROM $tableName
+    ''');
 
-    final countRows = await db.rawQuery(countQuery.toString(), whereArgs);
-    final total = (countRows.isNotEmpty ? (countRows.first['cnt'] as int) : 0);
+    if (where != null) statsQuery.write(' WHERE $where');
+
+    final statsRows = await db.rawQuery(statsQuery.toString(), whereArgs);
+    final statsRow = statsRows.first;
+
+    final totalFiltered = (statsRow['totalFiltered'] as int?) ?? 0;
+    final filteredStats = FilteredBookStats(
+      totalFiltered: totalFiltered,
+      filteredConsignment: (statsRow['filteredConsignment'] as int?) ?? 0,
+      filteredOwn: (statsRow['filteredOwn'] as int?) ?? 0,
+      filteredBooksWithConsignment:
+          (statsRow['filteredBooksWithConsignment'] as int?) ?? 0,
+      filteredBooksWithOwn: (statsRow['filteredBooksWithOwn'] as int?) ?? 0,
+    );
 
     final items = rows.map((m) => Book.fromMap(m)).toList(growable: false);
-    final hasMore = offset + items.length < total;
+    final hasMore = offset + items.length < totalFiltered;
 
     return PageResult<Book>(
       items: items,
       hasMore: hasMore,
-      totalCount: total,
+      totalCount: totalFiltered,
+      filteredStats: filteredStats,
+      currentPage: page,
+      pageSize: pageSize,
     );
   }
 
-  // ---------------------------------------------------------
-  // Limpieza de cache
-  // ---------------------------------------------------------
   Future<void> clearCache() async {
     await _clearCacheInternal();
   }
@@ -117,13 +155,12 @@ class BookService {
     );
   }
 
-  // =========================================================
-  // ===============   AYUDANTES PRIVADOS   ==================
-  // =========================================================
-
   Future<void> _fetchAllFromAPIAndCache() async {
     final String raw = await _requestBooksRawWithRetry();
-    final List<Book> books = await compute(_parseBooksFromJsonIsolateService, raw);
+    final List<Book> books = await compute(
+      _parseBooksFromJsonIsolateService,
+      raw,
+    );
     await _saveBooksToCache(books);
   }
 
@@ -145,7 +182,9 @@ class BookService {
                   'Connection': 'keep-alive',
                 },
               )
-              .timeout(Duration(seconds: baseTimeout.inSeconds + (retries * 15)));
+              .timeout(
+                Duration(seconds: baseTimeout.inSeconds + (retries * 15)),
+              );
 
           if (response.statusCode == 200) {
             final raw = utf8.decode(response.bodyBytes);
@@ -164,11 +203,15 @@ class BookService {
       } on TimeoutException catch (e) {
         retries++;
         if (retries >= maxRetries) {
-          throw Exception('La conexión está tardando demasiado. Verifica tu internet e inténtalo de nuevo.');
+          throw Exception(
+            'La conexión está tardando demasiado. Verifica tu internet e inténtalo de nuevo.',
+          );
         }
         await Future.delayed(Duration(seconds: 2 * retries));
       } on SocketException {
-        throw Exception('Sin conexión a internet. Verifica tu conexión y vuelve a intentar.');
+        throw Exception(
+          'Sin conexión a internet. Verifica tu conexión y vuelve a intentar.',
+        );
       } on HttpException catch (e) {
         retries++;
         if (retries >= maxRetries) {
@@ -180,11 +223,12 @@ class BookService {
       }
     }
 
-    throw Exception('No se pudo cargar los libros después de $maxRetries intentos');
+    throw Exception(
+      'No se pudo cargar los libros después de $maxRetries intentos',
+    );
   }
 
   Future<void> _saveBooksToCache(List<Book> books) async {
-    // Guardado por lotes para no bloquear
     await DbService.instance.clearTable(tableName);
 
     const int chunkSize = 200;
@@ -194,11 +238,9 @@ class BookService {
       for (final b in slice) {
         await DbService.instance.insert(tableName, b.toMap());
       }
-      // pequeña pausa para ceder hilo
       await Future.delayed(const Duration(milliseconds: 1));
     }
 
-    // metadata
     final now = DateTime.now().millisecondsSinceEpoch;
     await DbService.instance.delete(
       cacheTableName,
@@ -213,19 +255,64 @@ class BookService {
   }
 }
 
-// ---------------------------------------------------------
-// PageResult simple para paginación
-// ---------------------------------------------------------
+// Clases de datos mejoradas
 class PageResult<T> {
   final List<T> items;
   final bool hasMore;
   final int totalCount;
-  PageResult({required this.items, required this.hasMore, required this.totalCount});
+  final FilteredBookStats? filteredStats;
+  final int currentPage;
+  final int pageSize;
+
+  PageResult({
+    required this.items,
+    required this.hasMore,
+    required this.totalCount,
+    this.filteredStats,
+    required this.currentPage,
+    required this.pageSize,
+  });
+  String get pageInfo {
+    final start = ((currentPage - 1) * pageSize) + 1;
+    final end = start + items.length - 1;
+    return "Mostrando $start-$end de $totalCount";
+  }
+
+  int get totalPages => (totalCount / pageSize).ceil();
 }
 
-// ---------------------------------------------------------
-// Helpers top-level para parseo en isolate
-// ---------------------------------------------------------
+class BookStats {
+  final int totalBooks;
+  final int totalConsignment;
+  final int totalOwn;
+  final int booksWithConsignment;
+  final int booksWithOwn;
+
+  BookStats({
+    required this.totalBooks,
+    required this.totalConsignment,
+    required this.totalOwn,
+    required this.booksWithConsignment,
+    required this.booksWithOwn,
+  });
+}
+
+class FilteredBookStats {
+  final int totalFiltered;
+  final int filteredConsignment;
+  final int filteredOwn;
+  final int filteredBooksWithConsignment;
+  final int filteredBooksWithOwn;
+
+  FilteredBookStats({
+    required this.totalFiltered,
+    required this.filteredConsignment,
+    required this.filteredOwn,
+    required this.filteredBooksWithConsignment,
+    required this.filteredBooksWithOwn,
+  });
+}
+
 List<Book> _parseBooksFromJsonIsolateService(String body) {
   final dynamic decoded = jsonDecode(body);
 
@@ -258,7 +345,9 @@ Book _bookFromDynamicIsolate(Map<String, dynamic> item) {
           'Sin editorial',
     ),
     cantidadPropia: _safeToIntIsolate(item['own_quantity_total'] ?? 0),
-    cantidadConsignacion: _safeToIntIsolate(item['consignment_quantity_total'] ?? 0),
+    cantidadConsignacion: _safeToIntIsolate(
+      item['consignment_quantity_total'] ?? 0,
+    ),
     total: _safeToIntIsolate(item['cost'] ?? item['total'] ?? 0),
   );
 }
