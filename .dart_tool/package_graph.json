@@ -11,6 +11,7 @@
         "flutter",
         "google_fonts",
         "http",
+        "mobile_scanner",
         "shared_preferences",
         "sqflite"
       ],
@@ -136,6 +137,15 @@
         "meta",
         "sky_engine",
         "vector_math"
+      ]
+    },
+    {
+      "name": "mobile_scanner",
+      "version": "3.5.7",
+      "dependencies": [
+        "flutter",
+        "flutter_web_plugins",
+        "js"
       ]
     },
     {
@@ -468,6 +478,11 @@
     {
       "name": "characters",
       "version": "1.4.0",
+      "dependencies": []
+    },
+    {
+      "name": "js",
+      "version": "0.7.2",
       "dependencies": []
     },
     {

@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'package:flutter/foundation.dart'; // compute
+import 'package:flutter/foundation.dart'; 
 import 'package:http/http.dart' as http;
 import 'package:sqflite/sqflite.dart';
 
@@ -13,8 +13,6 @@ class BookService {
 
   static const int maxRetries = 3;
   static const Duration baseTimeout = Duration(seconds: 60);
-
-  // Tablas
   static const String tableName = 'books';
   static const String cacheTableName = 'cache_metadata';
 
@@ -24,16 +22,11 @@ class BookService {
   void endSession() => _isSessionActive = false;
   bool get isSessionActive => _isSessionActive;
 
-  // ---------------------------------------------------------
-  // Descarga inicial SOLO si la tabla está vacía
-  // ---------------------------------------------------------
   Future<void> ensureLocalData() async {
     final count = await DbService.instance.getTableSize(tableName);
     if (count > 0) {
-      // Ya hay cache: NO llamamos a la API
       return;
     }
-    // No hay datos: descargar TODOS y guardar
     await _fetchAllFromAPIAndCache();
   }
 
@@ -255,7 +248,6 @@ class BookService {
   }
 }
 
-// Clases de datos mejoradas
 class PageResult<T> {
   final List<T> items;
   final bool hasMore;
@@ -360,3 +352,4 @@ int _safeToIntIsolate(dynamic value) {
   if (value is String) return int.tryParse(value) ?? 0;
   return 0;
 }
+

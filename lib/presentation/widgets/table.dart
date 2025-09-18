@@ -120,8 +120,8 @@ class _BooksTableState extends State<BooksTable> {
 
     const columns = <DataColumn>[
       DataColumn(label: Text("Nombre de la obra")),
-      DataColumn(label: Text("# Propia")),
-      DataColumn(label: Text("# Consignacion")),
+      DataColumn(label: Text("Propia")),
+      DataColumn(label: Text("Consignacion")),
     ];
 
     return Column(

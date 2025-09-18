@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
 
 class FiltersModalContent extends StatefulWidget {
   const FiltersModalContent({super.key});
@@ -8,7 +10,6 @@ class FiltersModalContent extends StatefulWidget {
 }
 
 class _FiltersModalContentState extends State<FiltersModalContent> {
-  // Controladores (para poder copiar/pegar fácilmente)
   final TextEditingController _obraCtrl = TextEditingController();
   final TextEditingController _codigoCtrl = TextEditingController();
   final TextEditingController _autorCtrl = TextEditingController();
@@ -28,10 +29,64 @@ class _FiltersModalContentState extends State<FiltersModalContent> {
     super.dispose();
   }
 
-  // Si tienes lector de códigos, engancha aquí
   Future<void> _openIsbnScanner() async {
-    // TODO: Integrar cámara/escaner
-    debugPrint('Abrir lector de ISBN…');
+    try {
+      // Navegar a la pantalla de escáner
+      await Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => _BarcodeScannerScreen(
+            onBarcodeDetected: (String barcode) {
+              // Validar que sea un ISBN válido (10 o 13 dígitos)
+              if (_isValidISBN(barcode)) {
+                setState(() {
+                  _isbnCtrl.text = barcode;
+                });
+                
+                // Mostrar mensaje de éxito
+                _showSnackBar('ISBN escaneado correctamente: $barcode', Colors.green);
+                
+                debugPrint('ISBN escaneado: $barcode');
+              } else {
+                // El código escaneado no es un ISBN válido
+                _showSnackBar('El código escaneado no es un ISBN válido', Colors.orange);
+                debugPrint('Código no válido escaneado: $barcode');
+              }
+              
+              Navigator.of(context).pop(); // Cerrar escáner
+            },
+          ),
+        ),
+      );
+
+    } catch (e) {
+      // Otros errores
+      debugPrint('Error inesperado: $e');
+      _showSnackBar('Error inesperado al escanear', Colors.red);
+    }
+  }
+
+  // Validar formato ISBN (básico)
+  bool _isValidISBN(String code) {
+    // Remover espacios y guiones
+    final cleanCode = code.replaceAll(RegExp(r'[\s-]'), '');
+    
+    // Verificar que sea numérico y tenga 10 o 13 dígitos
+    if (!RegExp(r'^\d{10}$|^\d{13}$').hasMatch(cleanCode)) {
+      return false;
+    }
+
+    return true;
+  }
+
+  void _showSnackBar(String message, Color backgroundColor) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: backgroundColor,
+        duration: const Duration(seconds: 3),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   void _clearAll() {
@@ -40,12 +95,11 @@ class _FiltersModalContentState extends State<FiltersModalContent> {
     _autorCtrl.clear();
     _proveedorCtrl.clear();
     _isbnCtrl.clear();
-    setState(() {}); // refresca placeholders si hace falta
+    setState(() {});
   }
 
   String? _editorialFromProveedor(String? prov) {
     if (prov == null || prov.trim().isEmpty) return null;
-    // Si más adelante necesitas mapear proveedor->editorial, hazlo aquí.
     return prov.trim();
   }
 
@@ -82,7 +136,6 @@ class _FiltersModalContentState extends State<FiltersModalContent> {
   @override
   Widget build(BuildContext context) {
     final insets = MediaQuery.of(context).viewInsets;
-
     return Padding(
       padding: EdgeInsets.only(bottom: insets.bottom),
       child: ClipRRect(
@@ -98,19 +151,18 @@ class _FiltersModalContentState extends State<FiltersModalContent> {
               return LayoutBuilder(
                 builder: (context, constraints) {
                   final w = constraints.maxWidth;
-                  final twoCols = w >= 360; // 2 por fila cuando hay espacio
+                  final twoCols = w >= 360; 
 
                   double itemWidth(int perRow) {
                     const gap = 8.0;
                     final totalGap = gap * (perRow - 1);
-                    return (w - 32 /*padding x*/ - totalGap) / perRow;
+                    return (w - 32 - totalGap) / perRow;
                   }
 
                   return ListView(
                     controller: scrollController,
                     padding: const EdgeInsets.all(16),
                     children: [
-                      // Handle
                       Center(
                         child: Container(
                           width: 40,
@@ -123,7 +175,6 @@ class _FiltersModalContentState extends State<FiltersModalContent> {
                       ),
                       const SizedBox(height: 12),
 
-                      // Inputs en la misma modal (sin abrir otra)
                       Wrap(
                         spacing: 8,
                         runSpacing: 8,
@@ -134,7 +185,7 @@ class _FiltersModalContentState extends State<FiltersModalContent> {
                               icon: Icons.book,
                               hint: 'Nombre de la obra',
                               controller: _obraCtrl,
-                              textInputAction: TextInputAction.next,
+                              textInputAction: TextInputAction.search,
                             ),
                           ),
                           SizedBox(
@@ -143,7 +194,7 @@ class _FiltersModalContentState extends State<FiltersModalContent> {
                               icon: Icons.code,
                               hint: 'Código',
                               controller: _codigoCtrl,
-                              textInputAction: TextInputAction.next,
+                              textInputAction: TextInputAction.search,
                             ),
                           ),
                           SizedBox(
@@ -164,7 +215,6 @@ class _FiltersModalContentState extends State<FiltersModalContent> {
                               textInputAction: TextInputAction.next,
                             ),
                           ),
-                          // ISBN con botón de cámara
                           SizedBox(
                             width: itemWidth(1),
                             child: _IsbnInlineField(
@@ -219,6 +269,90 @@ class _FiltersModalContentState extends State<FiltersModalContent> {
             },
           ),
         ),
+      ),
+    );
+  }
+}
+
+// Pantalla del escáner de códigos de barras
+class _BarcodeScannerScreen extends StatefulWidget {
+  final Function(String) onBarcodeDetected;
+
+  const _BarcodeScannerScreen({required this.onBarcodeDetected});
+
+  @override
+  State<_BarcodeScannerScreen> createState() => _BarcodeScannerScreenState();
+}
+
+class _BarcodeScannerScreenState extends State<_BarcodeScannerScreen> {
+  late MobileScannerController controller;
+  bool isDetected = false;
+
+  @override
+  void initState() {
+    super.initState();
+    controller = MobileScannerController();
+  }
+
+  @override
+  void dispose() {
+    controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Escanear ISBN'),
+        backgroundColor: Colors.green,
+        foregroundColor: Colors.white,
+        actions: [
+          IconButton(
+            onPressed: () => controller.toggleTorch(),
+            icon: const Icon(Icons.flash_on),
+          ),
+          IconButton(
+            onPressed: () => controller.switchCamera(),
+            icon: const Icon(Icons.camera_front),
+          ),
+        ],
+      ),
+      body: Stack(
+        children: [
+          MobileScanner(
+            controller: controller,
+            onDetect: (BarcodeCapture capture) {
+              if (!isDetected) {
+                isDetected = true;
+                final List<Barcode> barcodes = capture.barcodes;
+                for (final barcode in barcodes) {
+                  if (barcode.rawValue != null) {
+                    widget.onBarcodeDetected(barcode.rawValue!);
+                    break;
+                  }
+                }
+              }
+            },
+          ),
+          // Overlay con instrucciones
+          Container(
+            alignment: Alignment.bottomCenter,
+            padding: const EdgeInsets.all(16),
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.7),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Text(
+                'Apunta la cámara hacia el código de barras del libro',
+                style: TextStyle(color: Colors.white),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
