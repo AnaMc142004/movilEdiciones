@@ -1,4 +1,3 @@
-// lib/presentation/pages/login/widgets/login_form.dart
 import 'package:flutter/material.dart';
 import '../../../widgets/custom_input_field.dart';
 import '../../../widgets/custom_button.dart';
@@ -70,7 +69,7 @@ class _LoginFormState extends State<LoginForm> {
                   Navigator.pushNamedAndRemoveUntil(
                     context,
                     AppRoutes.work,
-                    (route) => false, // <- borra TODO el historial
+                    (route) => false, 
                   );
                 } catch (e) {
                   ScaffoldMessenger.of(context).showSnackBar(

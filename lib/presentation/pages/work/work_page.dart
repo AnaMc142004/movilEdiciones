@@ -96,7 +96,7 @@ class _WorkPageState extends State<WorkPage> {
         pageSize: _pageSize,
         hasConsignment: obrasConsignacion ? true : null,
         hasOwn: obrasPropias ? true : null,
-        searchQuery: _searchQuery, // <- mantiene texto
+        searchQuery: _searchQuery, 
       );
       if (!mounted) return;
 
@@ -124,7 +124,6 @@ class _WorkPageState extends State<WorkPage> {
         obrasPropias = value;
       }
     });
-    // debounce pequeño
     _filterTimer = Timer(const Duration(milliseconds: 120), () {
       _fetchFirstPage();
     });
@@ -336,7 +335,7 @@ class _WorkPageState extends State<WorkPage> {
             child: BooksTable(
               books: books,
               onRowTap:
-                  _showBookDetails, // asegúrate de que BooksTable acepte este callback
+                  _showBookDetails,
             ),
           ),
         ),
@@ -349,8 +348,8 @@ class _WorkPageState extends State<WorkPage> {
                 width: double.infinity,
                 child: ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green, // fondo verde
-                    foregroundColor: Colors.white, // texto e icono en blanco
+                    backgroundColor: Colors.green, 
+                    foregroundColor: Colors.white, 
                     disabledBackgroundColor: Colors.green.shade300,
                     disabledForegroundColor: Colors.white70,
                   ),
@@ -361,7 +360,7 @@ class _WorkPageState extends State<WorkPage> {
                           height: 18,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            color: Colors.white, // spinner blanco
+                            color: Colors.white, 
                           ),
                         )
                       : const Icon(Icons.download),
@@ -545,7 +544,6 @@ class _CacheOptionsSheet extends StatelessWidget {
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 16),
-          // Estadísticas de lo cargado en memoria (rápidas)
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(

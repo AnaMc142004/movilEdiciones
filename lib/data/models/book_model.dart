@@ -17,7 +17,7 @@ class Book {
     required this.total,
   });
 
-  // Convertir de Map a Book (para leer desde base de datos)
+
   factory Book.fromMap(Map<String, dynamic> map) {
     return Book(
       id: map['id']?.toString() ?? '',
@@ -30,7 +30,6 @@ class Book {
     );
   }
 
-  // Convertir de Book a Map (para guardar en base de datos)
   Map<String, dynamic> toMap() {
     return {
       'id': id,

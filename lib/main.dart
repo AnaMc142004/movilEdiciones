@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'presentation/routes/app_routes.dart';
 import '../local/session_storage.dart';
 import "presentation/routes/app_routes.dart";
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final hasSession = await SessionStorage.hasSession();
@@ -18,11 +19,9 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'MovilEdiciones',
       debugShowCheckedModeBanner: false,
-      initialRoute: initialRoute,                 // '/' si es login
-      onGenerateRoute: AppRoutes.generateRoute,  // <-- usa tu switch
-      // onUnknownRoute: (settings) => MaterialPageRoute(
-      //   builder: (_) => const Scaffold(body: Center(child: Text('Ruta no encontrada'))),
-      // ),
+      initialRoute: initialRoute,
+      onGenerateRoute: AppRoutes.generateRoute,
+
       theme: ThemeData(useMaterial3: true),
     );
   }

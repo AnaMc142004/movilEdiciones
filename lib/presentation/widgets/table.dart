@@ -13,7 +13,6 @@ class BooksTable extends StatefulWidget {
 
 class _BooksTableState extends State<BooksTable> {
   final ScrollController _horizontalCtrl = ScrollController();
-
   @override
   void dispose() {
     _horizontalCtrl.dispose();

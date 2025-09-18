@@ -19,7 +19,7 @@ class DbService {
 
     return await openDatabase(
       path,
-      version: 2, // Incrementar versión para agregar nueva tabla
+      version: 2, 
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -49,7 +49,6 @@ class DbService {
 
   Future _onUpgrade(Database db, int oldVersion, int newVersion) async {
     if (oldVersion < 2) {
-      // Agregar tabla de metadata si no existe
       await db.execute('''
         CREATE TABLE IF NOT EXISTS cache_metadata(
           key TEXT PRIMARY KEY,
@@ -97,14 +96,12 @@ class DbService {
     await db.delete(table);
   }
 
-  // Método para obtener el tamaño de una tabla
   Future<int> getTableSize(String table) async {
     final db = await instance.database;
     final result = await db.rawQuery('SELECT COUNT(*) as count FROM $table');
     return result.first['count'] as int;
   }
 
-  // Método para verificar si una tabla existe
   Future<bool> tableExists(String tableName) async {
     final db = await instance.database;
     final result = await db.rawQuery(
