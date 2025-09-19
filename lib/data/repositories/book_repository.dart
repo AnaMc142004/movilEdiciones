@@ -45,7 +45,7 @@ class BookRepository {
     final result = await _service.queryBooksPageFromDB(
       page: 1,
       pageSize: 1,
-      searchQuery: id, // Asumiendo que el ID puede buscarse como texto
+      searchQuery: id, 
     );
     
     return result.items.isNotEmpty ? result.items.first : null;

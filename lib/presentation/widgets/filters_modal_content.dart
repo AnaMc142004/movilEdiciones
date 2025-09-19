@@ -31,46 +31,39 @@ class _FiltersModalContentState extends State<FiltersModalContent> {
 
   Future<void> _openIsbnScanner() async {
     try {
-      // Navegar a la pantalla de escáner
       await Navigator.of(context).push(
         MaterialPageRoute(
           builder: (context) => _BarcodeScannerScreen(
             onBarcodeDetected: (String barcode) {
-              // Validar que sea un ISBN válido (10 o 13 dígitos)
               if (_isValidISBN(barcode)) {
                 setState(() {
                   _isbnCtrl.text = barcode;
                 });
                 
-                // Mostrar mensaje de éxito
                 _showSnackBar('ISBN escaneado correctamente: $barcode', Colors.green);
                 
                 debugPrint('ISBN escaneado: $barcode');
               } else {
-                // El código escaneado no es un ISBN válido
                 _showSnackBar('El código escaneado no es un ISBN válido', Colors.orange);
                 debugPrint('Código no válido escaneado: $barcode');
               }
               
-              Navigator.of(context).pop(); // Cerrar escáner
+              Navigator.of(context).pop();
             },
           ),
         ),
       );
 
     } catch (e) {
-      // Otros errores
+
       debugPrint('Error inesperado: $e');
       _showSnackBar('Error inesperado al escanear', Colors.red);
     }
   }
 
-  // Validar formato ISBN (básico)
   bool _isValidISBN(String code) {
-    // Remover espacios y guiones
     final cleanCode = code.replaceAll(RegExp(r'[\s-]'), '');
-    
-    // Verificar que sea numérico y tenga 10 o 13 dígitos
+  
     if (!RegExp(r'^\d{10}$|^\d{13}$').hasMatch(cleanCode)) {
       return false;
     }

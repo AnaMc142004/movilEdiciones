@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'package:flutter/foundation.dart'; 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:sqflite/sqflite.dart';
 
@@ -30,7 +30,6 @@ class BookService {
     await _fetchAllFromAPIAndCache();
   }
 
-
   Future<void> refreshAllFromAPI() async {
     await _clearCacheInternal();
     await _fetchAllFromAPIAndCache();
@@ -58,82 +57,108 @@ class BookService {
       booksWithOwn: (row['booksWithOwn'] as int?) ?? 0,
     );
   }
-  Future<PageResult<Book>> queryBooksPageFromDB({
-    required int page,
-    required int pageSize,
-    bool? hasConsignment,
-    bool? hasOwn,
-    String? searchQuery,
-  }) async {
-    final Database db = await DbService.instance.database;
 
-    // WHERE dinámico
-    final whereParts = <String>[];
-    final whereArgs = <Object?>[];
+Future<PageResult<Book>> queryBooksPageFromDB({
+  required int page,
+  required int pageSize,
+  bool? hasConsignment,
+  bool? hasOwn,
+  String? searchQuery,
+}) async {
+  final Database db = await DbService.instance.database;
 
+  // WHERE dinámico
+  var whereParts = <String>[];
+  var whereArgs = <Object?>[];
+
+  if (searchQuery != null && searchQuery.trim().isNotEmpty) {
+    final raw = searchQuery.trim();
+    final isDigitsOnly = RegExp(r'^\d+$').hasMatch(raw);
+
+    if (isDigitsOnly) {
+      final idCheck = await db.rawQuery(
+        'SELECT 1 FROM $tableName WHERE id = ? LIMIT 1',
+        [raw],
+      );
+      if (idCheck.isNotEmpty) {
+        whereParts = ['id = ?'];
+        whereArgs = [raw];
+      }
+    }
+  }
+
+
+  final isIdExclusive = whereParts.length == 1 && whereParts.first == 'id = ?';
+  if (!isIdExclusive) {
     if (hasConsignment == true) {
       whereParts.add('cantidadConsignacion > 0');
     }
     if (hasOwn == true) {
       whereParts.add('cantidadPropia > 0');
     }
+
     if (searchQuery != null && searchQuery.trim().isNotEmpty) {
-      final q = '%${searchQuery.toLowerCase()}%';
-      whereParts.add(
-        '(LOWER(nombre) LIKE ? OR LOWER(isbn) LIKE ? OR LOWER(editorial) LIKE ?)',
+      final raw = searchQuery.trim();
+      final qLower = '%${raw.toLowerCase()}%';
+
+      // Búsqueda amplia (nombre, isbn, editorial, id LIKE) SOLO si no fue id-exclusivo
+      final buffer = StringBuffer(
+        '(LOWER(nombre) LIKE ? OR LOWER(isbn) LIKE ? OR LOWER(editorial) LIKE ? OR id LIKE ?)'
       );
-      whereArgs.addAll([q, q, q]);
+      whereArgs.addAll([qLower, qLower, qLower, '%$raw%']);
+      whereParts.add(buffer.toString());
     }
-
-    final where = whereParts.isEmpty ? null : whereParts.join(' AND ');
-    final offset = (page - 1) * pageSize;
-
-    final rows = await db.query(
-      tableName,
-      where: where,
-      whereArgs: whereArgs,
-      orderBy: 'nombre COLLATE NOCASE ASC',
-      limit: pageSize,
-      offset: offset,
-    );
-
-    final statsQuery = StringBuffer('''
-      SELECT 
-        COUNT(*) as totalFiltered,
-        SUM(cantidadConsignacion) as filteredConsignment,
-        SUM(cantidadPropia) as filteredOwn,
-        COUNT(CASE WHEN cantidadConsignacion > 0 THEN 1 END) as filteredBooksWithConsignment,
-        COUNT(CASE WHEN cantidadPropia > 0 THEN 1 END) as filteredBooksWithOwn
-      FROM $tableName
-    ''');
-
-    if (where != null) statsQuery.write(' WHERE $where');
-
-    final statsRows = await db.rawQuery(statsQuery.toString(), whereArgs);
-    final statsRow = statsRows.first;
-
-    final totalFiltered = (statsRow['totalFiltered'] as int?) ?? 0;
-    final filteredStats = FilteredBookStats(
-      totalFiltered: totalFiltered,
-      filteredConsignment: (statsRow['filteredConsignment'] as int?) ?? 0,
-      filteredOwn: (statsRow['filteredOwn'] as int?) ?? 0,
-      filteredBooksWithConsignment:
-          (statsRow['filteredBooksWithConsignment'] as int?) ?? 0,
-      filteredBooksWithOwn: (statsRow['filteredBooksWithOwn'] as int?) ?? 0,
-    );
-
-    final items = rows.map((m) => Book.fromMap(m)).toList(growable: false);
-    final hasMore = offset + items.length < totalFiltered;
-
-    return PageResult<Book>(
-      items: items,
-      hasMore: hasMore,
-      totalCount: totalFiltered,
-      filteredStats: filteredStats,
-      currentPage: page,
-      pageSize: pageSize,
-    );
   }
+
+  final where = whereParts.isEmpty ? null : whereParts.join(' AND ');
+  final offset = (page - 1) * pageSize;
+
+  // Datos de la página
+  final rows = await db.query(
+    tableName,
+    where: where,
+    whereArgs: whereArgs,
+    orderBy: 'nombre COLLATE NOCASE ASC',
+    limit: pageSize,
+    offset: offset,
+  );
+
+  final statsQuery = StringBuffer('''
+    SELECT 
+      COUNT(*) as totalFiltered,
+      SUM(cantidadConsignacion) as filteredConsignment,
+      SUM(cantidadPropia) as filteredOwn,
+      COUNT(CASE WHEN cantidadConsignacion > 0 THEN 1 END) as filteredBooksWithConsignment,
+      COUNT(CASE WHEN cantidadPropia > 0 THEN 1 END) as filteredBooksWithOwn
+    FROM $tableName
+  ''');
+  if (where != null) statsQuery.write(' WHERE $where');
+
+  final statsRows = await db.rawQuery(statsQuery.toString(), whereArgs);
+  final statsRow = statsRows.first;
+
+  final totalFiltered = (statsRow['totalFiltered'] as int?) ?? 0;
+  final filteredStats = FilteredBookStats(
+    totalFiltered: totalFiltered,
+    filteredConsignment: (statsRow['filteredConsignment'] as int?) ?? 0,
+    filteredOwn: (statsRow['filteredOwn'] as int?) ?? 0,
+    filteredBooksWithConsignment: (statsRow['filteredBooksWithConsignment'] as int?) ?? 0,
+    filteredBooksWithOwn: (statsRow['filteredBooksWithOwn'] as int?) ?? 0,
+  );
+
+  final items = rows.map((m) => Book.fromMap(m)).toList(growable: false);
+  final hasMore = offset + items.length < totalFiltered;
+
+  return PageResult<Book>(
+    items: items,
+    hasMore: hasMore,
+    totalCount: totalFiltered,
+    filteredStats: filteredStats,
+    currentPage: page,
+    pageSize: pageSize,
+  );
+}
+
 
   Future<void> clearCache() async {
     await _clearCacheInternal();
@@ -352,4 +377,3 @@ int _safeToIntIsolate(dynamic value) {
   if (value is String) return int.tryParse(value) ?? 0;
   return 0;
 }
-
